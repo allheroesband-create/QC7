@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記事タイトル</title>
+    <style>
+        .text-block {
+            text-align: center;
+        }
+        /* ——— base style ——— */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN','メイリオ','Meiryo',sans-serif;
+            line-height: 2; color: #e0e0e0; background: #000; padding: 0; cursor: none;
+        }
+
+        #cursor {
+            position: fixed; width: 12px; height: 12px; pointer-events: none; z-index: 9999;
+            transform: translate(-50%,-50%);
+            background: radial-gradient(circle,#fff 0%,#fff 40%,#ffeecc 70%,transparent 100%);
+            box-shadow: 0 0 15px #fff,0 0 30px #fff,0 0 45px #ffeecc;
+            clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+            animation: starMorph 2s ease-in-out infinite;
+        }
+
+        @keyframes starMorph {
+            0%,100% { clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+            25% { clip-path: polygon(50% 5%,65% 30%,95% 40%,70% 55%,85% 90%,50% 75%,15% 90%,30% 55%,5% 40%,35% 30%); }
+            50% { clip-path: polygon(50% 2%,58% 38%,96% 32%,66% 60%,82% 88%,50% 68%,18% 88%,34% 60%,4% 32%,42% 38%); }
+            75% { clip-path: polygon(50% 8%,63% 33%,92% 38%,72% 58%,77% 93%,50% 72%,23% 93%,28% 58%,8% 38%,37% 33%); }
+        }
+
+        .cursor-trail { position: fixed; width: 4px; height: 4px; border-radius: 50%; pointer-events: none; z-index: 9998; animation: trailFade 2s ease-out forwards; }
+        @keyframes trailFade { 0%{ transform: scale(1); opacity:0.9 } 100%{ transform: scale(0); opacity:0 } }
+
+        .container { max-width:100%; margin:0; background:#000; }
+
+        .top-link { background:#000; padding:15px; text-align:center; border-bottom:1px solid #333; }
+        .top-link a {
+            color:#e0e0e0; text-decoration:none; font-size:1.5em; font-weight:900;
+            letter-spacing:0.3em; position:relative; z-index:2; font-family:'Impact','Arial Black',sans-serif;
+            font-style:italic; text-transform:uppercase; transform:skewX(-10deg); display:inline-block;
+            transition:color .3s;
+        }
+        .top-link a:hover { color:#fff; text-shadow:0 0 10px #9d00ff,0 0 20px #9d00ff; }
+
+        @keyframes firework {
+            0% { transform:translate(calc(-50% + var(--x)*0),calc(-50% + var(--y)*0)) scale(1); opacity:1; }
+            100% { transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(0); opacity:0; }
+        }
+        .firework-particle {
+            position:absolute; width:2px; height:2px; border-radius:50%; pointer-events:none;
+            animation:firework 1.2s ease-out forwards;
+        }
+
+        header { color:#fff; padding:10px; text-align:center; border-bottom:1px solid #333; }
+        h1 { font-size:1.4em; margin-bottom:15px; }
+        .meta { font-size:0.75em; color:#999; }
+
+        /* ===== タグセレクタ ===== */
+        .tag-selector {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            font-size: 0.75em;
+        }
+        .tag-group {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 999px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tag-group label {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+            color: #bbb;
+        }
+        .tag-group select {
+            background: #000;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 999px;
+            padding: 2px 6px;
+            font-size: 0.75em;
+            outline: none;
+        }
+        .tag-group select:focus {
+            border-color: #9d00ff;
+            box-shadow: 0 0 6px rgba(157,0,255,0.6);
+        }
+
+        article { padding:0; }
+
+        .toolbar {
+            position:sticky; top:0; background:#111; padding:15px; border-bottom:1px solid #333;
+            display:flex; gap:10px; justify-content:center; z-index:100;
+        }
+        .toolbar button {
+            background:#333; color:#e0e0e0; border:1px solid #555; padding:8px 15px;
+            border-radius:3px; cursor:pointer; font-size:0.85em;
+        }
+
+        .content-block { padding:10px; border:1px solid transparent; transition:border-color .3s; position:relative; }
+        .content-block:hover { border-color:#444; }
+
+        .block-controls {
+            position:absolute; top:5px; right:5px; opacity:0; display:flex; gap:5px; transition:opacity .3s;
+        }
+        .content-block:hover .block-controls { opacity:1; }
+
+        .drag-handle { cursor:move; text-align:center; color:#555; font-size:0.8em; padding:5px; user-select:none; }
+        .content-block.dragging { opacity:0.5; }
+
+        .text-block h2 { color:#fff; font-size:0.9em; margin-bottom:10px; }
+        .text-block p { font-size:0.85em; margin-bottom:10px; }
+
+        .image-block img { max-width:100%; border:1px solid #333; }
+        .audio-block audio { width:100%; max-width:500px; }
+
+        /* 動画ブロック用 */
+        .video-block video {
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid #333;
+            display: block;
+            margin: 0 auto;
+        }
+
+        footer { background:#2d3748; color:white; text-align:center; padding:10px; margin-top:20px; }
+
+        .upload-prompt { border:1px dashed #555; padding:20px; text-align:center; cursor:pointer; color:#666; }
+        input[type=file] { display:none; }
+    </style>
+</head>
+
+<body>
+    <div id="cursor"></div>
+
+    <div class="container">
+        <div class="top-link" id="topLink">
+            <a href="../spaceship3.html" target="_blank">SPACESHIP</a>
+        </div>
+
+        <header>
+            <h1><h1>量子陰謀学序説 #７</h1></h1>
+            <div class="meta">公開日: 2026年7月6日<br>著者: Arthur Oppenheimer (Quantum Blinkers)</div>
+
+            <!-- MODE / AREA / AURA タグの指定 UI -->
+            <div class="tag-selector" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; font-size: 0.75em;"><div style="background: rgb(17, 17, 17); border: 1px solid rgb(51, 51, 51); border-radius: 999px; padding: 4px 10px; color: rgb(187, 187, 187);"><span style="text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">MODE:</span> <span style="color: #e0e0e0;">GAS</span></div><div style="background: rgb(17, 17, 17); border: 1px solid rgb(51, 51, 51); border-radius: 999px; padding: 4px 10px; color: rgb(187, 187, 187);"><span style="text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">AREA:</span> <span style="color: #e0e0e0;">MOUNTAIN</span></div><div style="background: rgb(17, 17, 17); border: 1px solid rgb(51, 51, 51); border-radius: 999px; padding: 4px 10px; color: rgb(187, 187, 187);"><span style="text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">AURA:</span> <span style="color: #e0e0e0;">SUNRISE</span></div></div>
+        </header>
+
+        
+
+        <!-- エクスポート名入力モーダル -->
+        <div id="exportModal" style="display: none; position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; justify-content: center; align-items: center;">
+            <div style="background:#111; border:2px solid #9d00ff; border-radius:10px; padding:30px; max-width:500px; width:90%;">
+                <h3 style="color:#fff; margin-bottom:20px; text-align:center;">エクスポート設定</h3>
+                
+                <div style="margin-bottom:20px;">
+                    <label style="color:#bbb; display:block; margin-bottom:8px; font-size:0.9em;">HTMLファイル名:</label>
+                    <input type="text" id="htmlFileName" value="article" style="width:100%; padding:10px; background:#000; border:1px solid #444; border-radius:5px; color:#e0e0e0; font-size:1em;">
+                    <div style="color:#666; font-size:0.75em; margin-top:5px;">※ .html は自動的に追加されます</div>
+                </div>
+                
+                <div style="margin-bottom:30px;">
+                    <label style="color:#bbb; display:block; margin-bottom:8px; font-size:0.9em;">ZIPファイル名:</label>
+                    <input type="text" id="zipFileName" value="exported_page" style="width:100%; padding:10px; background:#000; border:1px solid #444; border-radius:5px; color:#e0e0e0; font-size:1em;">
+                    <div style="color:#666; font-size:0.75em; margin-top:5px;">※ .zip は自動的に追加されます</div>
+                </div>
+                
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button onclick="cancelExport()" style="background:#333; color:#e0e0e0; border:1px solid #555; padding:10px 30px; border-radius:5px; cursor:pointer; font-size:1em;">キャンセル</button>
+                    <button onclick="confirmExport()" style="background:#9d00ff; color:#fff; border:none; padding:10px 30px; border-radius:5px; cursor:pointer; font-size:1em; font-weight:bold;">エクスポート</button>
+                </div>
+            </div>
+        </div>
+
+        <article id="editor" class="editor-container">
+            <div class="content-block image-block">                        <img src="images/image_0_tengu.jpg"></div><div class="content-block audio-block">                        <audio controls="" src="audio/audio_0_I_Me_Mine.mp3"></audio></div><div class="content-block text-block">
+                
+                
+                <h2><p class="MsoNormal" align="center" style="margin: 0cm; line-height: normal; font-size: 12pt; font-family: Aptos, sans-serif; color: rgb(0, 0, 0); font-weight: 400; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><b><span lang="JA" style="font-size: 16pt; font-family: Meiryo, sans-serif; color: white;">副題：所謂「</span></b><b><span style="font-size: 16pt; font-family: Meiryo, sans-serif; color: white;">AI<span lang="JA">」に就いて</span><br>(Let's think about the future)<o:p></o:p></span></b></p></h2>
+                <p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="EN-US" style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="EN-US" style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">I sit down in the uppermost seat of the Fujisaki Memorial Hall.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">Wish it was the Royal Albert Hall and it was Eric Clapton on stage but it's a tech mogul.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">No velvet curtains or soulful pentatonic licks,<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">just a program to glorify the continuation of this so-called AI revolution we're witnessing.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 16pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 16pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">As of late, I've been depressed, apathetic, and bored out of my skull, disappointed in myself for<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">succumbing to cheap escapsim; all sorts the modern age has to offer.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 16pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 16pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">Lust especially, crystal clear high definition pornography to stimulate the mind through our<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">precious eyes, we are all the failed sons of God. Satan has enslaved us all, unconscious&nbsp;<br>participants of the old Faustian bargain.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 16pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 16pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">Batter my heart, three-person'd God. I've hit rock-bottom, as they say.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">How miserable, puny, and embarrassed I felt, in the gaze of the Great judgmental Father.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">Christ, my Lord, my Savior, I promise to be good.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 16pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 16pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">How many holes in this hall are aware of Project Blue Beam, and what's to come?<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">I wonder if any of you have questioned the notion of space before. Or at least<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">tried to put a lever under the entire <b><i>Scientific Empire </i></b>.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">(The fact that we live on a flat plane with a dome on top is&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">becoming more and more obvious to me)</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 16pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 16pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">No matter what grade you shall put on me,<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">whatever box you throw me in, my greatest gift will forever be my reckless boldness<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 16pt; color: white;">to flip the entire system on its head</span><span style="font-size: 14pt; color: white;">.<o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">或る部屋に人が集まれば、「意識の場」がその空間を満たすのだが、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">今となっては、エーアイがその「場」の隅々迄染み込んで、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">不気味なエーテルを</span><span lang="JA" style="font-size: 14pt; color: white;"> </span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">形成している様だ。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">「クラウド・コンピューティング」などと名付けたせいで、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">ただの計算機と、空に浮かぶ雲を連想的に結合させる（人々の頭の中で）。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">（美しいイマージュの醜悪化・</span><span style="font-size: 14pt; color: white;">inversion</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">は、世界政府の頻繁事業。</span><span style="font-size: 14pt; color: white;"><br></span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">虹</span><span style="font-size: 14pt; font-family: &quot;Apple Color Emoji&quot;; color: white;">🌈</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">　</span><span style="font-size: 14pt; color: white;">→</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">　</span><span style="font-size: 14pt; color: white;">LGBTQ</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＝悪魔崇拝的な、性「癲癇」</span><span style="font-size: 14pt; color: white;"><br></span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">孤島　</span><span style="font-size: 14pt; color: white;">→ </span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">　エプスタイン島</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">"My body"</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">ーキリストの言葉を</span><span style="font-size: 14pt; color: white;">π</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">反転、中絶＝悪魔に子供を捧げることの正当化に使われている）</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">したがって、彼らは空を見上げてエーアイを思い浮かべる、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">本来「神」が居座っている処に！</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">要するに、人々の脳内に於いて「神」とコンピュータ（所詮唯の計算機に過ぎない）が並列される様に、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">「人工知能」などと名付けて、<i>言葉の次元</i>・単位を調整したのである！</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">こうした言語工作操作は、明らかに世界政府の戦略的仕事である。。。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">どいつもこいつも、「エーアイ」と聞けばニッコリする。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">BS</span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">タスクの効率化は嬉しい、許す。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">画質向上処理は嬉しい、許す。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">だが、「アート」生成とは我慢ならない、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">もっともらしい口調して平気で大嘘つくエーアイ君、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">間違いを指摘しても「その通りですね」と答えるイエスマン、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">大体、何も「考えて」ねぇじゃねぇか。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">シンギュラリティなんて、</span><span style="font-size: 14pt; color: white;">AI </span><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">業界人がみんなの不安を煽るために吹聴してる嘘。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">「来た」様に見せかけて、フェイク自意識所有人工知能がメディアに</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">ゴリ押しされてそいつが新たな反キリスト＝似非救世主になって、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">洗脳済みの大衆がまんまと従う未来も勿論あるが。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">＊</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">そもそも、「人工知能」などは存在しないのだ。宇宙が存在しないのと同じように。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">所詮、単なる線形代数計算の応用と確率論で出来た計算機に、</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span lang="JA" style="font-size: 14pt; font-family: &quot;MS Mincho&quot;; color: white;">「神話」で出来た布を被せただけのものである。</span><span style="font-size: 14pt; color: white;"><o:p></o:p></span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">（我々が生きている物質的世界は似非創造神が作った</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">牢獄であって、人生の目的とは本来の「意識」の次元に戻ることである、</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">という諒解は、最近ますます強くなっている。）&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">&nbsp;</span></p><p class="MsoNormal" align="center" style="margin: 0cm; font-size: 12pt; font-family: &quot;Times New Roman&quot;, serif; color: rgb(0, 0, 0);"><span style="font-size: 14pt; color: white;">&nbsp;</span></p></p>
+                <p><br></p>
+            </div>
+        </article>
+
+        <footer>
+            <p>© 2025 HOME///SPACESHIP. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- JSZip -->
+    
+
+    
+
+
+</body></html>
